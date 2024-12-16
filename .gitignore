@@ -7,4 +7,3 @@ db/*
 *.pyo
 bin/
 *.lock
-
