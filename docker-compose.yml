@@ -1,0 +1,47 @@
+# ========================================================================
+# Seção 01: Definição das redes e volumes que serão usadas pelos serviços
+# ========================================================================
+networks:
+  app-network:
+    driver: bridge  # Usando o driver de rede 'bridge' para permitir que os containers se comuniquem entre si
+
+volumes:
+  postgres_data:  # Este volume irá persistir os dados do banco PostgreSQL, garantindo que os dados não se percam ao reiniciar os containers
+
+# ==================================
+# Seção 02: Definição dos serviços
+# ==================================
+services:
+  # === Configuração do serviço PostgreSQL === #
+  postgres:
+    image: postgres:15  # Utiliza a imagem oficial do PostgreSQL versão 15
+    container_name: postgres  # Nome do container, facilita a identificação
+    environment:
+      POSTGRES_USER: postgres  # Definindo o usuário padrão para o banco de dados
+      POSTGRES_PASSWORD: secretpass  # Definindo a senha do usuário PostgreSQL
+      POSTGRES_DB: postgres  # Nome do banco de dados a ser criado no início
+    ports:
+      - "5432:5432"  # Mapeia a porta 5432 do container para a porta 5432 do host, permitindo acesso ao banco de dados
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Mapeia o volume 'postgres_data' para armazenar os dados do banco de forma persistente
+    networks:
+      - app-network  # Conecta o serviço PostgreSQL à rede 'app-network', permitindo a comunicação com os outros containers
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]  # Comando de verificação de saúde para garantir que o PostgreSQL está pronto
+      interval: 10s  # Intervalo entre as verificações
+      timeout: 5s  # Tempo limite para a resposta do comando
+      retries: 5  # Número de tentativas antes de considerar o serviço como falho
+  
+  # === Configuração do serviço Backend (FLASK) === #
+  backend:
+    build:
+      context: ./backend  # Caminho relativo para o diretório onde o Dockerfile do backend está localizado
+      dockerfile: Dockerfile  # Nome do arquivo Dockerfile do backend
+    container_name: flask  # Nome do container do serviço backend
+    depends_on:
+      postgres:
+        condition: service_healthy  # Garante que o PostgreSQL esteja pronto e saudável antes de iniciar o backend
+    networks:
+      - app-network  # Conecta o serviço do backend à mesma rede 'app-network' para comunicação com o PostgreSQL e o frontend
+    ports:
+      - "5000:5000"  # Expondo a porta 5000 do backend no container para a porta 5000 do host
