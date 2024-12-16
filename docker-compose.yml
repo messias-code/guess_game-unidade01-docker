@@ -45,3 +45,16 @@ services:
       - app-network  # Conecta o serviço do backend à mesma rede 'app-network' para comunicação com o PostgreSQL e o frontend
     ports:
       - "5000:5000"  # Expondo a porta 5000 do backend no container para a porta 5000 do host
+  
+  # === Serviço do frontend (NGINX) === #
+  frontend:
+    build: 
+      context: ./frontend  # Caminho relativo para o diretório onde o Dockerfile do frontend está localizado
+      dockerfile: Dockerfile  # Nome do arquivo Dockerfile do frontend
+    container_name: nginx  # Nome do container do serviço frontend
+    depends_on:
+      - backend  # O frontend depende do backend para ser iniciado (precisa que o backend esteja saudável antes)
+    networks:
+      - app-network  # Coloca o frontend na mesma rede que o backend e o PostgreSQL
+    ports:
+      - "80:80"  # Expondo a porta 80 do NGINX no container para a porta 80 do host, permitindo acesso à interface do frontend
